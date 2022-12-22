@@ -30,6 +30,10 @@ Route::middleware('auth:api')->group(function () {
     Route::get('getStudentDetailsByAdmissionNumber', 'App\Http\Controllers\Controller@getStudentDetailsByAdmissionNumber');
     Route::get('getFeesDetails/{admission_number}','App\Http\Controllers\Controller@getFeesDetails');
     Route::get('getAttendanceStatus/{admission_number}/{startDate}/{endDate}','App\Http\Controllers\AttendenceController@getAttendanceStatus');
-    Route::post('logout', 'App\Http\Controllers\Auth\PassportAuthController@logout');
+    Route::post('logout', 'App\Http\Controllers\Auth\PassportAuthController@logou');
    
+
+
+
+
 });

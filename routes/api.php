@@ -29,11 +29,12 @@ Route::middleware('auth:api')->group(function () {
     Route::post('updateStudentDetails', 'App\Http\Controllers\Controller@updateStudentDetails');
     Route::get('getStudentDetailsByAdmissionNumber', 'App\Http\Controllers\Controller@getStudentDetailsByAdmissionNumber');
     Route::get('getFeesDetails/{admission_number}','App\Http\Controllers\Controller@getFeesDetails');
+    Route::get('getListOfCirculars/{class}/{circular_type}','App\Http\Controllers\CircularController@getStudentsCircular');
+    Route::get('getMetaCirculars','App\Http\Controllers\CircularController@getCircularMetaData');
+    Route::get('getCircularById/{circular_id}','App\Http\Controllers\CircularController@getCircularDetailsById');
     Route::get('getAttendanceStatus/{admission_number}/{startDate}/{endDate}','App\Http\Controllers\AttendenceController@getAttendanceStatus');
-    Route::post('logout', 'App\Http\Controllers\Auth\PassportAuthController@logou');
+    Route::post('logout','App\Http\Controllers\Auth\PassportAuthController@logout');
+    
    
-
-
-
 
 });

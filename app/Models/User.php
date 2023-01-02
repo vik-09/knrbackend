@@ -23,7 +23,7 @@ class User extends Authenticatable
         'password',
         'admission_number',
         'mobile_number',
-        'user_type'
+        'role_type'
 
     ];
 

@@ -26,9 +26,7 @@ class Student extends Model
         'aadhar_number',
         'address',
         'emergency_contact_number',
-        'father_details',
-        'mother_details',
-        'sibling_details',
+        'parent_details'
     ];
 
     public function parents()

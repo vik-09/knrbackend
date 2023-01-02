@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 
 use App\Models\Student;
+use App\Models\ParentMaster;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
@@ -12,8 +13,10 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Http\Response;
 use App\Models\User;
+use Error;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Auth;
 
 class Controller extends BaseController
 {
@@ -25,7 +28,7 @@ class Controller extends BaseController
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:200',
             'admission_number' => 'required|string|max:200',
-            'class' => 'required|string|max:10',
+            'class' => 'required|digits_between:1,12',
             'section' => 'required|string|max:10',
             'roll_number' => 'required|string|max:10',
             'date_of_birth' => ['required', 'regex:/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/'],
@@ -38,9 +41,9 @@ class Controller extends BaseController
             'mother_tongue' => 'required|string|max:100',
             'aadhar_number' => ['required', 'regex:/^\d{4}\s\d{4}\s\d{4}$/'],
             'address' => 'required|string|max:400',
-            'emergency_contact_number' => ['required', 'regex:/((\+*)((0[ -]*)*|((91 )*))((\d{12})+|(\d{10})+))|\d{5}([- ]*)\d{6}$/']
-
-
+            'emergency_contact_number' => ['required', 'regex:/((\+*)((0[ -]*)*|((91 )*))((\d{12})+|(\d{10})+))|\d{5}([- ]*)\d{6}$/'],
+            'parent_email_id_1' => ['required', 'email', 'max:255', 'regex:/(.*)\.com/i'],
+            'parent_email_id_2' => ['required', 'email', 'max:255', 'regex:/(.*)\.com/i']
         ]);
 
         if ($validator->fails()) {
@@ -97,38 +100,23 @@ class Controller extends BaseController
         return response($response, 200);
     }
 
-    public function getStudentDetailsByAdmissionNumber(Request $request)
+    public function getStudentDetails()
     {
+        $family_group_id = Auth::user()->family_group_id;
+        $student_list = [];
+        $admission_number_list_from_family_group = User::select("family_group.admission_number")->distinct()->join('family_group', 'family_group.family_group_id', '=', 'users.family_group_id')
+            ->where("users.family_group_id", "=", $family_group_id)->get();
 
-        $validator = Validator::make($request->all(), [
-            'admission_number' => 'required|string|max:200',
-        ]);
-
-        if ($validator->fails()) {
-            return response(['errors' => $validator->errors()->all()], 422);
-        }
-
-        $student = Student::where('admission_number', $request->admission_number)->first();
-        if ($student == null) {
-            error_log($request);
-            return View('Student Not Found', [], 404);
-        }
-
-
-        $parent_list_for_student = [];
-        $parent_list_for_student = User::select("users.name","users.email","users.mobile_number","users.user_type")->join("students", "students.admission_number", "=", "users.admission_number")->where("students.admission_number", "=", $request->admission_number)->get();
-        foreach ($parent_list_for_student as $value) {
-            if ($value->user_type === "MOTHER") {
-                $student->mother_details = $value;
-            } else if ($value->user_type === "FATHER") {
-                $student->father_details = $value;
+        foreach ($admission_number_list_from_family_group as $eachadmissionnumber) {
+            $admission_number = $eachadmissionnumber->admission_number;
+            $parentDetails = ParentMaster::select("parent_masters.*")->where("parent_masters.admission_no", "=", $admission_number)->get();
+            $student = Student::where('admission_number', $admission_number)->first();
+            if ($student) {
+                $student->parent_details = $parentDetails;
+                array_push($student_list, $student);
             }
         }
-        if ($parent_list_for_student != null) {
-            error_log($parent_list_for_student);
-        }
-
-        $response = $student;
+        $response = $student_list;
         return response($response, 200);
     }
 

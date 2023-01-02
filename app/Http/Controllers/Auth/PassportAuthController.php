@@ -10,6 +10,9 @@ use App\Http\Controllers\Controller;
 
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use App\Models\FamilyGroup;
+use Carbon\Carbon;
 
 class PassportAuthController extends Controller
 {
@@ -21,11 +24,10 @@ class PassportAuthController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email|max:255',
             'password' => 'required|string|min:8|confirmed',
             'admission_number' => 'required',
-            'mobile_number' => 'required|max:10',
-            'user_type'=> ['required', 'regex:/^(FATHER|MOTHER)$/']
+            'mobile_number' => 'required|max:10'
         ]);
         if ($validator->fails()) {
             return response(['errors' => $validator->errors()->all()], 422);
@@ -36,19 +38,28 @@ class PassportAuthController extends Controller
             is present in student master and email and mobile number match
             with whats present in parents_table
         */
-        $request['password'] = Hash::make($request['password']);
-        $request['remember_token'] = Str::random(10);
-        $user = User::create($request->toArray());
-        $token = $user->createToken('API Token')->accessToken;
-        $response = ['token' => $token];
-        return response($response, 200);
+
+        $user = User::where('email', $request->email)->first();
+
+
+        if ($user) {
+            $response = ["message" => "User With Email Already Registered"];
+            return response($response, 200);
+        } else {
+            $request['password'] = Hash::make($request['password']);
+            $request['remember_token'] = Str::random(10);
+            $user = User::create($request->toArray());
+            $token = $user->createToken('API Token')->accessToken;
+            $response = ['token' => $token];
+            return response($response, 200);
+        }
     }
 
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|string|email|max:255',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:8',
         ]);
         if ($validator->fails()) {
 
@@ -57,8 +68,19 @@ class PassportAuthController extends Controller
         $user = User::where('email', $request->email)->first();
         if ($user) {
             if (Hash::check($request->password, $user->password)) {
-                $token = $user->createToken('API Token')->accessToken;
+                $tokenResult = $user->createToken('API Token');
+                $token = $tokenResult->token;
+                $token->expires_at = Carbon::now()->addDays(2);
+                $token->save();
                 $response = ['token' => $token];
+                $response = [
+                    'access_token' => $tokenResult->accessToken,
+                    'token_type' => 'Bearer',
+                    'expires_at' => Carbon::parse(
+                        $tokenResult->token->expires_at
+                    )->toDateTimeString(),
+                    'role_type' => $user->role_type
+                ];
                 return response($response, 200);
             } else {
                 $response = ["message" => "Password mismatch"];
@@ -85,6 +107,5 @@ class PassportAuthController extends Controller
 
     public function getUserDetailsByemailId(Request $request)
     {
-        
     }
 }
